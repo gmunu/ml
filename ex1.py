@@ -74,6 +74,9 @@ class LinearRegression:
         augmented_data_point = np.hstack([np.mat("1"), data_point])
         return augmented_data_point * self.theta
 
+def sigmoid(A):
+    return 1.0 / (1 + np.exp(-A))
+
 def main():
     print "Univariate Linear Regression:"
     lr = LinearRegression(alpha=0.01, num_iters=1500)
