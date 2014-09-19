@@ -63,6 +63,20 @@ class GradDescent(Optimizer):
 
 
 class SupervisedLearner(object):
+    def load(self, filename):
+        feature_matrix, labels = self._load_data(filename)
+        self.m, self.n = feature_matrix.shape
+        if self.feature_normalization:
+            (feature_matrix,
+             self.mu, self.sigma) = self._normalize_features(feature_matrix)
+        # augment X by 1 (intercept feature):
+        feature_matrix = np.hstack([np.ones((self.m, 1)), feature_matrix])
+        # alternatively:
+        # tmp = np.mat(np.ones((m, n + 1)))
+        # tmp[:, 1:] = X
+        # X = tmp
+        self.cost = self.cost_type(feature_matrix, labels)
+
     def _load_data(self, filename):
         """The given filename contains the training set, one line per data point,
         consisting of comma separated features and label."""
@@ -83,24 +97,24 @@ class Classification(SupervisedLearner):
     pass
 
 
+class LogisticRegression(Classification):
+    def __init__(self, max_iters, feature_normalization=False):
+        self.cost_type = LogisticCost
+        self.feature_normalization = feature_normalization
+
+    def learn(self, theta_0=None):
+        if theta_0==None:
+            theta_0 = np.mat(np.zeros((self.n + 1, 1)))
+        self.theta, J_history = scipy.optimize.optimize(self.cost, theta_0)
+        return self.theta, J_history
+        
+
 class LinearRegression(Regression):
     def __init__(self, alpha, max_iters, feature_normalization=False):
         self.optimizer = GradDescent(alpha, max_iters)
         self.feature_normalization = feature_normalization
+        self.cost_type = MeanSquaredError
 
-    def load(self, filename):
-        feature_matrix, labels = self._load_data(filename)
-        self.m, self.n = feature_matrix.shape
-        if self.feature_normalization:
-            (feature_matrix,
-             self.mu, self.sigma) = self._normalize_features(feature_matrix)
-        # augment X by 1 (intercept feature):
-        feature_matrix = np.hstack([np.ones((self.m, 1)), feature_matrix])
-        # alternatively:
-        # tmp = np.mat(np.ones((m, n + 1)))
-        # tmp[:, 1:] = X
-        # X = tmp
-        self.cost = MeanSquaredError(feature_matrix, labels)
 
     def learn(self, theta_0=None):
         if theta_0==None:
@@ -123,22 +137,24 @@ class LinearRegression(Regression):
         augmented_data_point = np.hstack([np.mat("1"), data_point])
         return augmented_data_point * self.theta
 
-filename_univariate_data = 'ex1/ex1data1.txt'
-filename_multivariate_data = 'ex1/ex1data2.txt'
+filename_univariate_linear_data = 'ex1/ex1data1.txt'
+filename_multivariate_linear_data = 'ex1/ex1data2.txt'
+filename_logistic_data = 'ex2/ex2data1.txt'
 
-def main():
+def test_ex1():
     print "Univariate Linear Regression:"
     lr = LinearRegression(alpha=0.01, max_iters=1500)
-    lr.load(filename_univariate_data)
+    lr.load(filename_univariate_linear_data)
     theta, J_history = lr.learn()
     print "initial cost J: " + str(J_history[0])
     print str(J_history[1:])
     print "final thetas: " + str(theta)
-    
+
+def test_ex1_extra():
     print "Miltivariate Linear Regression:"
     lr = LinearRegression(alpha=0.01, max_iters=400, 
                           feature_normalization=True)
-    lr.load(filename_multivariate_data)
+    lr.load(filename_multivariate_linear_data)
     theta, J_history = lr.learn()
     price = lr.predict(np.mat("1650 3"))
     print "initial cost J: " + str(J_history[0])
@@ -146,6 +162,22 @@ def main():
     print "final thetas: " + str(theta)
     print "predicted price for 1650 ft^2, 3br: $" + str(price)
 
+def test_ex2():
+    print "Logistic Regression:"
+    lr = LogisticRegression(alpha=0.01, max_iters=400)
+    lr.load(filename_logistic_data)
+    theta, J_history = lr.learn()
+    price = lr.predict(np.mat("1650 3"))
+    print "initial cost J: " + str(J_history[0])
+    print str(J_history[1:])
+    print "final thetas: " + str(theta)
+    print "predicted price for 1650 ft^2, 3br: $" + str(price)
+
+def main():
+    test_ex1()
+    test_ex1_extra()
+    test_ex2()
+    
 if __name__ == "__main__":
     main()
 
