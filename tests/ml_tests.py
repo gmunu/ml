@@ -1,6 +1,6 @@
-from nose import with_setup
+# from nose import with_setup
 from nose.tools import assert_equal, assert_almost_equal
-from numpy.testing import assert_array_almost_equal
+from numpy.testing import assert_array_almost_equal, assert_allclose
 import numpy as npy
 from ml.ml import *
 
@@ -18,23 +18,71 @@ class TestUnivariateLinearRegression:
     def teardown(self):
         self.lr = None
 
-    def test_univariate_linear_regression_cost(self):
+    def test_cost(self):
         theta, J_history = self.lr.learn()
-        actual = J_history[0,0]
-        expected = 32.07273
-        assert_almost_equal(actual, expected, places=4)
+        initial_cost = J_history[0,0]
+        expected_initial_cost = 32.07273
+        assert_almost_equal(initial_cost, expected_initial_cost, places=5)
 
-    def test_univariate_linear_regression_gradient_descent(self):
+    def test_gradient_descent(self):
         theta, J_history = self.lr.learn()
         # final cost:
         J_min = J_history[-1, 0]
-        desired_J_min = 4.483388
-        assert_almost_equal(J_min, desired_J_min, places=5)
+        expected_J_min = 4.483388
+        assert_almost_equal(J_min, expected_J_min, places=5)
         # final thetas:
-        desired_theta = npy.mat("-3.63029; 1.16636")
-        assert_array_almost_equal(theta, desired_theta, decimal=5)
+        expected_theta = npy.mat("-3.63029; 1.16636")
+        assert_array_almost_equal(theta, expected_theta, decimal=5)
 
-#@with_setup(setup_univariate_linear_regression, teardown_univariate_linear_regression)
+    def test_predict(self):
+        self.lr.learn()
+        prediction = self.lr.predict(npy.mat("3.5"))
+        expected_prediction = 0.4519767868
+        assert_almost_equal(prediction, expected_prediction, places=5)
+        prediction = self.lr.predict(npy.mat("7"))
+        expected_prediction = 4.5342450129
+        assert_almost_equal(prediction, expected_prediction, places=5)
+
+
+class TestMultivariateLinearRegression:
+
+    def setup(self):
+        self.lr = LinearRegression(alpha=0.01, max_iters=400,
+                                   feature_normalization=True)
+        self.lr.load(filename_multivariate_linear_data)
+
+    def teardown(self):
+        self.lr = None
+
+    def test_cost(self):
+        theta, J_history = self.lr.learn()
+        initial_cost = J_history[0,0]
+        expected_initial_cost = 6.55915481e10 # value from octave
+        assert_allclose(initial_cost, expected_initial_cost, rtol=0.01)
+
+    def test_gradient_descent_first_step(self):
+        theta, J_history = self.lr.learn()
+        initial_cost = J_history[1,0]
+        expected_initial_cost = 6.430074959e10
+        assert_allclose(initial_cost, expected_initial_cost, rtol=0.01)
+
+    def test_gradient_descent_final_cost(self):
+        theta, J_history = self.lr.learn()
+        J_min = J_history[-1, 0]
+        expected_J_min = 2.10885006e9 # value from octave
+        assert_allclose(J_min, expected_J_min, rtol=0.01)
+
+    def test_gradient_descent_final_thetas(self):
+        theta, J_history = self.lr.learn()
+        expected_theta = npy.mat("334302.063993; 100087.116006; 3673.548451")
+        assert_allclose(theta, expected_theta, rtol=0.2)
+
+    def test_predict(self):
+        self.lr.learn()
+        prediction = self.lr.predict(npy.mat("1650 3"))
+        expected_prediction = 289314.620338
+        assert_allclose(prediction, expected_prediction, rtol=0.01)
+
 
 def test_ex1():
     print "Univariate Linear Regression:"
@@ -51,7 +99,7 @@ def test_ex1_extra():
                           feature_normalization=True)
     lr.load(filename_multivariate_linear_data)
     theta, J_history = lr.learn()
-    price = lr.predict(np.mat("1650 3"))
+    price = lr.predict(npy.mat("1650 3"))
     print "initial cost J: " + str(J_history[0])
     print str(J_history[1:])
     print "final thetas: " + str(theta)

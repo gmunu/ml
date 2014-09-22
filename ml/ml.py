@@ -112,31 +112,21 @@ class SupervisedLearner(object):
         feature_matrix = np.mat(training_set["X"]) # all but last column
         return feature_matrix, labels
 
+
 class Regression(SupervisedLearner):
     pass
+
 
 class Classification(SupervisedLearner):
     pass
 
 
-class LogisticRegression(Classification):
-    def __init__(self, max_iters, feature_normalization=False):
-        self.cost_type = LogisticCost
-        self.feature_normalization = feature_normalization
-
-    def learn(self, theta_0=None):
-        if theta_0==None:
-            theta_0 = np.mat(np.zeros((self.n + 1, 1)))
-        self.theta, J_history = scipy.optimize.optimize(self.cost, theta_0)
-        return self.theta, J_history
-        
-
 class LinearRegression(Regression):
+
     def __init__(self, alpha, max_iters, feature_normalization=False):
         self.optimizer = GradDescent(alpha, max_iters)
         self.feature_normalization = feature_normalization
         self.cost_type = MeanSquaredError
-
 
     def learn(self, theta_0=None):
         if theta_0==None:
@@ -158,6 +148,19 @@ class LinearRegression(Regression):
                                                   self.mu, self.sigma)[0]
         augmented_data_point = np.hstack([np.mat("1"), data_point])
         return augmented_data_point * self.theta
+
+
+class LogisticRegression(Classification):
+    def __init__(self, max_iters, feature_normalization=False):
+        self.cost_type = LogisticCost
+        self.feature_normalization = feature_normalization
+
+    def learn(self, theta_0=None):
+        if theta_0==None:
+            theta_0 = np.mat(np.zeros((self.n + 1, 1)))
+        self.theta, J_history = scipy.optimize.optimize(self.cost, theta_0)
+        return self.theta, J_history
+        
 
 class NeuralNetwork(SupervisedLearner):
     def learn(__self__):
