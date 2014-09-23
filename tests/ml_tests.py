@@ -84,6 +84,38 @@ class TestMultivariateLinearRegression:
         assert_allclose(prediction, expected_prediction, rtol=0.01)
 
 
+class TestSupervisedLoad:
+
+    filename_multivariate_csv_data = 'tests/ex1data2.txt'
+    filename_multivariate_mat_data = 'tests/ex1data2.mat'
+
+    def setup(self):
+        self.sl = SupervisedLearner(alpha=0.01, max_iters=40)
+
+    def teardown(self):
+        self.sl = None
+
+    def test_csv_load(self):
+        (feature_matrix,
+         labels) = self.sl.load(self.filename_multivariate_csv_data)
+        some_features = feature_matrix[-3:,:]
+        expected_features = npy.mat("1 852 2; 1 1852 4; 1 1203 3")
+        assert_array_almost_equal(some_features, expected_features)
+        some_labels = labels[-3:, 0]
+        expected_labels = npy.mat("179900; 299900; 239500")
+        assert_array_almost_equal(some_labels, expected_labels)
+
+    def test_mat_load(self):
+        (feature_matrix,
+         labels) = self.sl.loadmat(self.filename_multivariate_mat_data)
+        some_features = feature_matrix[-3:,:]
+        expected_features = npy.mat("1 852 2; 1 1852 4; 1 1203 3")
+        assert_array_almost_equal(some_features, expected_features)
+        some_labels = labels[-3:, 0]
+        expected_labels = npy.mat("179900; 299900; 239500")
+        assert_array_almost_equal(some_labels, expected_labels)
+
+
 def test_ex1():
     print "Univariate Linear Regression:"
     lr = LinearRegression(alpha=0.01, max_iters=1500)
@@ -120,3 +152,5 @@ def test_ex4():
     print "Neural Network:"
     nn = NeuralNetwork()
     nn.loadmat(filename_neural_network)
+
+
