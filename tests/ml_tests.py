@@ -2,12 +2,45 @@
 from nose.tools import assert_equal, assert_almost_equal
 from numpy.testing import assert_array_almost_equal, assert_allclose
 import numpy as npy
+import scipy.io as sio
 from ml.ml import *
 
 filename_univariate_linear_data = 'tests/ex1data1.txt'
 filename_multivariate_linear_data = 'tests/ex1data2.txt'
 filename_logistic_data = 'tests/ex2data1.txt'
 filename_neural_network = 'tests/ex4data1.mat'
+
+class TestSupervisedLoad:
+
+    filename_multivariate_csv_data = 'tests/ex1data2.txt'
+    filename_multivariate_mat_data = 'tests/ex1data2.mat'
+
+    def setup(self):
+        self.sl = SupervisedLearner(alpha=0.01, max_iters=40)
+
+    def teardown(self):
+        self.sl = None
+
+    def test_csv_load(self):
+        (feature_matrix,
+         labels) = self.sl.load(self.filename_multivariate_csv_data)
+        some_features = feature_matrix[-3:,:]
+        expected_features = npy.mat("1 852 2; 1 1852 4; 1 1203 3")
+        assert_array_almost_equal(some_features, expected_features)
+        some_labels = labels[-3:, 0]
+        expected_labels = npy.mat("179900; 299900; 239500")
+        assert_array_almost_equal(some_labels, expected_labels)
+
+    def test_mat_load(self):
+        (feature_matrix,
+         labels) = self.sl.loadmat(self.filename_multivariate_mat_data)
+        some_features = feature_matrix[-3:,:]
+        expected_features = npy.mat("1 852 2; 1 1852 4; 1 1203 3")
+        assert_array_almost_equal(some_features, expected_features)
+        some_labels = labels[-3:, 0]
+        expected_labels = npy.mat("179900; 299900; 239500")
+        assert_array_almost_equal(some_labels, expected_labels)
+
 
 class TestUnivariateLinearRegression:
 
@@ -84,36 +117,30 @@ class TestMultivariateLinearRegression:
         assert_allclose(prediction, expected_prediction, rtol=0.01)
 
 
-class TestSupervisedLoad:
+class TestNeuralNetwork:
 
-    filename_multivariate_csv_data = 'tests/ex1data2.txt'
-    filename_multivariate_mat_data = 'tests/ex1data2.mat'
+    filename_training_set = 'tests/ex4data1.mat'
+    filename_weights = 'tests/ex4weights.mat'
 
     def setup(self):
-        self.sl = SupervisedLearner(alpha=0.01, max_iters=40)
+        self.nn = NeuralNetwork(alpha=0.01, max_iters=40)
+        self.nn.loadmat(TestNeuralNetwork.filename_training_set)
+        data = sio.loadmat(TestNeuralNetwork.filename_weights)
+        self.thetas = [npy.mat(data["Theta1"]), npy.mat(data["Theta2"])]
 
     def teardown(self):
-        self.sl = None
+        self.nn = None
 
-    def test_csv_load(self):
-        (feature_matrix,
-         labels) = self.sl.load(self.filename_multivariate_csv_data)
-        some_features = feature_matrix[-3:,:]
-        expected_features = npy.mat("1 852 2; 1 1852 4; 1 1203 3")
-        assert_array_almost_equal(some_features, expected_features)
-        some_labels = labels[-3:, 0]
-        expected_labels = npy.mat("179900; 299900; 239500")
-        assert_array_almost_equal(some_labels, expected_labels)
+    def test_cost(self):
+        cost = self.nn.cost.compute(*self.thetas)
+        expected_cost = 0.287629 # value from octave
+        assert_allclose(cost, expected_cost, rtol=0.01)
 
-    def test_mat_load(self):
-        (feature_matrix,
-         labels) = self.sl.loadmat(self.filename_multivariate_mat_data)
-        some_features = feature_matrix[-3:,:]
-        expected_features = npy.mat("1 852 2; 1 1852 4; 1 1203 3")
-        assert_array_almost_equal(some_features, expected_features)
-        some_labels = labels[-3:, 0]
-        expected_labels = npy.mat("179900; 299900; 239500")
-        assert_array_almost_equal(some_labels, expected_labels)
+    def test_gradient_descent_first_step(self):
+        theta, J_history = self.nn.learn()
+        initial_cost = J_history[1,0]
+        expected_initial_cost = 6.430074959e10
+        assert_allclose(initial_cost, expected_initial_cost, rtol=0.01)
 
 
 def test_ex1():
@@ -152,5 +179,9 @@ def test_ex4():
     print "Neural Network:"
     nn = NeuralNetwork()
     nn.loadmat(filename_neural_network)
+    theta, J_history = nn.learn()
+    print "initial cost J: " + str(J_history[0])
+    print str(J_history[1:])
+    print "final thetas: " + str(theta)
 
 

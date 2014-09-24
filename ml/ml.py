@@ -31,23 +31,52 @@ class MeanSquaredError(Cost):
         return (1.0 / self.m * self.X.T * (h - self.y))
 
 
+def sigmoid(A):
+    return 1.0 / (1 + npy.exp(-A))
+
 class LogisticCost(Cost):
+
     def __init__(self, X, y):
         self.X = X
         self.y = y
         self.m = len(y)
 
-    def _sigmoid(self, A):
-        return 1.0 / (1 + npy.exp(-A))
-
     def compute(self, theta):
-        h = self._sigmoid(self.X * theta)
+        h = sigmoid(self.X * theta)
         return (-1.0 / self.m * (self.y.T * npy.log(h) 
                              + (1 - self.y).T * npy.log(1 - h)))
 
     def grad(self, theta):
-        h = self._sigmoid(self.X * theta)
+        h = sigmoid(self.X * theta)
         return (1.0 / self.m * self.X.T * (h - self.y))
+
+
+class NeuralNetworkCost(Cost):
+    def __init__(self, X, y):
+        self.X = X
+        self.y = y
+        self.m = len(y)
+
+    def compute(self, *thetas):
+        # thetas is a tuple of theta-matrices
+        L = len(thetas) # number of layers
+        K = thetas[-1].shape[0] # number of classes
+                                #   = number of rows in last theta
+        a_curr = self.X.T # already includes the bias row
+        a_list = [a_curr]
+        for theta in thetas:
+            z = theta * a_curr
+            a_curr = sigmoid(z)
+            bias_row = npy.mat(npy.ones((1, self.m)))
+            a_curr = npy.vstack([bias_row, a_curr])
+            a_list.append(a_curr)
+        # create indicator row in Y, for each exmple label in y:
+        h = a_list[-1][1:, :]
+        Y = npy.zeros((self.m, K))
+        Y[npy.hstack(map(lambda i: self.y == i, xrange(1, K + 1)))] = 1
+        J = -1.0/self.m * ((Y.flatten() * (npy.log(h).T.flatten().T))
+                           + ((1 - Y).flatten() * (npy.log(1 - h)).T.flatten().T))
+        return J
 
 
 class Optimizer(object):
@@ -184,7 +213,7 @@ class NeuralNetwork(SupervisedLearner):
     def __init__(self, alpha, max_iters, feature_normalization=False):
         self.optimizer = GradDescent(alpha, max_iters)
         self.feature_normalization = feature_normalization
-        self.cost_type = MeanSquaredError
+        self.cost_type = NeuralNetworkCost
 
     def learn(__self__):
         raise NotImplementedError()
