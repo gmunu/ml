@@ -57,7 +57,7 @@ class NeuralNetworkCost(Cost):
         self.y = y
         self.m = len(y)
 
-    def compute(self, *thetas):
+    def compute(self, thetas, regularization_const=0.0):
         # thetas is a tuple of theta-matrices
         L = len(thetas) # number of layers
         K = thetas[-1].shape[0] # number of classes
@@ -74,8 +74,14 @@ class NeuralNetworkCost(Cost):
         h = a_list[-1][1:, :]
         Y = npy.zeros((self.m, K))
         Y[npy.hstack(map(lambda i: self.y == i, xrange(1, K + 1)))] = 1
-        J = -1.0/self.m * ((Y.flatten() * (npy.log(h).T.flatten().T))
-                           + ((1 - Y).flatten() * (npy.log(1 - h)).T.flatten().T))
+        J = (Y.flatten() * (npy.log(h).T.flatten().T))
+        J += ((1 - Y).flatten() * (npy.log(1 - h)).T.flatten().T)
+        J *= - 1.0 / self.m
+        if regularization_const != 0.0:
+            for theta in thetas:
+                flat_theta = theta.flatten()
+                sumsq = flat_theta * flat_theta.T
+                J += float(regularization_const) / (2 * self.m) * sumsq
         return J
 
 

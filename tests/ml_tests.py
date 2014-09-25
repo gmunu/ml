@@ -132,8 +132,13 @@ class TestNeuralNetwork:
         self.nn = None
 
     def test_cost(self):
-        cost = self.nn.cost.compute(*self.thetas)
-        expected_cost = 0.287629 # value from octave
+        cost = self.nn.cost.compute(self.thetas)
+        expected_cost = 0.2876291652 # value from octave
+        assert_allclose(cost, expected_cost, rtol=0.01)
+
+    def test_regularized_cost(self):
+        cost = self.nn.cost.compute(self.thetas, regularization_const=1)
+        expected_cost = 0.383769859 # value from octave
         assert_allclose(cost, expected_cost, rtol=0.01)
 
     def test_gradient_descent_first_step(self):
