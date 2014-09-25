@@ -5,10 +5,6 @@ import numpy as npy
 import scipy.io as sio
 from ml.ml import *
 
-filename_univariate_linear_data = 'tests/ex1data1.txt'
-filename_multivariate_linear_data = 'tests/ex1data2.txt'
-filename_logistic_data = 'tests/ex2data1.txt'
-filename_neural_network = 'tests/ex4data1.mat'
 
 class TestSupervisedLoad:
 
@@ -22,8 +18,8 @@ class TestSupervisedLoad:
         self.sl = None
 
     def test_csv_load(self):
-        (feature_matrix,
-         labels) = self.sl.load(self.filename_multivariate_csv_data)
+        filename = TestSupervisedLoad.filename_multivariate_csv_data
+        feature_matrix, labels = self.sl.load(filename)
         some_features = feature_matrix[-3:,:]
         expected_features = npy.mat("1 852 2; 1 1852 4; 1 1203 3")
         assert_array_almost_equal(some_features, expected_features)
@@ -32,8 +28,8 @@ class TestSupervisedLoad:
         assert_array_almost_equal(some_labels, expected_labels)
 
     def test_mat_load(self):
-        (feature_matrix,
-         labels) = self.sl.loadmat(self.filename_multivariate_mat_data)
+        filename = TestSupervisedLoad.filename_multivariate_mat_data
+        feature_matrix, labels = self.sl.loadmat(filename)
         some_features = feature_matrix[-3:,:]
         expected_features = npy.mat("1 852 2; 1 1852 4; 1 1203 3")
         assert_array_almost_equal(some_features, expected_features)
@@ -44,16 +40,18 @@ class TestSupervisedLoad:
 
 class TestUnivariateLinearRegression:
 
+    filename_training_set = 'tests/ex1data1.txt'
+
     def setup(self):
         self.lr = LinearRegression(alpha=0.01, max_iters=1500)
-        self.lr.load(filename_univariate_linear_data)
+        self.lr.load(TestUnivariateLinearRegression.filename_training_set)
 
     def teardown(self):
         self.lr = None
 
     def test_cost(self):
-        theta, J_history = self.lr.learn()
-        initial_cost = J_history[0,0]
+        theta_0 = npy.mat(npy.zeros((2,1)))
+        initial_cost = self.lr.cost.compute(theta_0)
         expected_initial_cost = 32.07273
         assert_almost_equal(initial_cost, expected_initial_cost, places=5)
 
@@ -79,17 +77,19 @@ class TestUnivariateLinearRegression:
 
 class TestMultivariateLinearRegression:
 
+    filename_training_set = 'tests/ex1data2.txt'
+
     def setup(self):
         self.lr = LinearRegression(alpha=0.01, max_iters=400,
                                    feature_normalization=True)
-        self.lr.load(filename_multivariate_linear_data)
+        self.lr.load(TestMultivariateLinearRegression.filename_training_set)
 
     def teardown(self):
         self.lr = None
 
     def test_cost(self):
-        theta, J_history = self.lr.learn()
-        initial_cost = J_history[0,0]
+        theta_0 = npy.mat(npy.zeros((3,1)))
+        initial_cost = self.lr.cost.compute(theta_0)
         expected_initial_cost = 6.55915481e10 # value from octave
         assert_allclose(initial_cost, expected_initial_cost, rtol=0.01)
 
@@ -115,6 +115,24 @@ class TestMultivariateLinearRegression:
         prediction = self.lr.predict(npy.mat("1650 3"))
         expected_prediction = 289314.620338
         assert_allclose(prediction, expected_prediction, rtol=0.01)
+
+
+class TestLogisticRegression:
+
+    filename_training_set = 'tests/ex2data1.txt'
+
+    def setup(self):
+        self.lr = LogisticRegression(max_iters=400)
+        self.lr.load(TestLogisticRegression.filename_training_set)
+
+    def teardown(self):
+        self.lr = None
+
+    def test_cost(self):
+        theta_0 = npy.mat(npy.zeros((3,1)))
+        initial_cost = self.lr.cost.compute(theta_0)
+        expected_initial_cost = 0.69314181 # value from octave
+        assert_allclose(initial_cost, expected_initial_cost, rtol=0.01)
 
 
 class TestNeuralNetwork:
@@ -147,6 +165,13 @@ class TestNeuralNetwork:
         expected_initial_cost = 6.430074959e10
         assert_allclose(initial_cost, expected_initial_cost, rtol=0.01)
 
+
+##### old tests: ########
+
+filename_univariate_linear_data = 'tests/ex1data1.txt'
+filename_multivariate_linear_data = 'tests/ex1data2.txt'
+filename_logistic_data = 'tests/ex2data1.txt'
+filename_neural_network = 'tests/ex4data1.mat'
 
 def test_ex1():
     print "Univariate Linear Regression:"
