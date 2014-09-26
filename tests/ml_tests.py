@@ -133,6 +133,26 @@ class TestLogisticRegression:
         initial_cost = self.lr.cost.compute(theta_0)
         expected_initial_cost = 0.69314181 # value from octave
         assert_allclose(initial_cost, expected_initial_cost, rtol=0.01)
+        theta_0 = npy.mat([[-25], [0.2], [0.2]])
+        initial_cost = self.lr.cost.compute(theta_0)
+        expected_initial_cost = 0.207012277 # value from octave
+        assert_allclose(initial_cost, expected_initial_cost, rtol=0.01)
+
+    def test_regularized_cost(self):
+        theta_0 = npy.mat(npy.zeros((3,1)))
+        initial_cost = self.lr.cost.compute(theta_0,
+                                            regularization_const=1.0)
+        expected_initial_cost = 0.69314181 # value from octave
+        assert_allclose(initial_cost, expected_initial_cost, rtol=0.01)
+        theta_0 = npy.mat([[-25], [0.2], [0.2]])
+        initial_cost = self.lr.cost.compute(theta_0,
+                                            regularization_const=1.0)
+        expected_initial_cost = 0.207412277 # value from octave
+        assert_allclose(initial_cost, expected_initial_cost, rtol=0.01)
+        initial_cost = self.lr.cost.compute(theta_0,
+                                            regularization_const=10.0)
+        expected_initial_cost = 0.211012277 # value from octave
+        assert_allclose(initial_cost, expected_initial_cost, rtol=0.01)
 
 
 class TestNeuralNetwork:
@@ -155,7 +175,7 @@ class TestNeuralNetwork:
         assert_allclose(cost, expected_cost, rtol=0.01)
 
     def test_regularized_cost(self):
-        cost = self.nn.cost.compute(self.thetas, regularization_const=1)
+        cost = self.nn.cost.compute(self.thetas, regularization_const=1.0)
         expected_cost = 0.383769859 # value from octave
         assert_allclose(cost, expected_cost, rtol=0.01)
 
@@ -199,7 +219,7 @@ def test_ex2():
     lr = LogisticRegression(alpha=0.01, max_iters=400)
     lr.load(filename_logistic_data)
     theta, J_history = lr.learn()
-    price = lr.predict(np.mat("1650 3"))
+    price = lr.predict(npy.mat("1650 3"))
     print "initial cost J: " + str(J_history[0])
     print str(J_history[1:])
     print "final thetas: " + str(theta)

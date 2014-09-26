@@ -1,5 +1,6 @@
 import numpy as npy
 import scipy.io as sio
+import scipy.optimize as sop
 
 
 class Cost:
@@ -47,6 +48,11 @@ class LogisticCost(Cost):
         h = sigmoid(self.X * theta)
         J = -1.0 / self.m * (self.y.T * npy.log(h)
                              + (1 - self.y).T * npy.log(1 - h))
+        # regularization:
+        if regularization_const != 0.0:
+            lmbda = float(regularization_const)
+            theta_no_bias = theta[1:, :]
+            J += lmbda / (2 * self.m) * (theta_no_bias.T * theta_no_bias)
         return J
 
     def grad(self, theta):
@@ -116,7 +122,18 @@ class GradDescent(Optimizer):
         return theta, J_history
 
 
-class SupervisedLearner(object):
+class Learner(object):
+
+    def _normalize_features(self, features, mu=None, sigma=None):
+        if mu==None:
+            mu = npy.mean(features, 0)
+        if sigma==None:
+            sigma = npy.std(features, 0)
+        normalized = (features - mu) / sigma
+        return normalized, mu, sigma
+
+
+class SupervisedLearner(Learner):
 
     def __init__(self, alpha, max_iters, feature_normalization=False):
         self.optimizer = GradDescent(alpha, max_iters)
@@ -196,14 +213,6 @@ class LinearRegression(Regression):
         self.theta, J_history = self.optimizer.optimize(self.cost, theta_0)
         return self.theta, J_history
 
-    def _normalize_features(self, features, mu=None, sigma=None):
-        if mu==None:
-            mu = npy.mean(features, 0)
-        if sigma==None:
-            sigma = npy.std(features, 0)
-        normalized = (features - mu) / sigma
-        return normalized, mu, sigma
-
     def predict(self, data_point):
         if self.feature_normalization:
             data_point = self._normalize_features(data_point,
@@ -218,10 +227,14 @@ class LogisticRegression(Classification):
         self.feature_normalization = feature_normalization
 
     def learn(self, theta_0=None):
+        raise NotImplementedError()
         if theta_0==None:
             theta_0 = npy.mat(npy.zeros((self.n + 1, 1)))
-        self.theta, J_history = scipy.optimize.optimize(self.cost, theta_0)
+        self.theta, J_history = sop.optimize(self.cost, theta_0)
         return self.theta, J_history
+
+    def predict(self, data_point):
+        raise NotImplementedError()
         
 
 class NeuralNetwork(SupervisedLearner):
@@ -231,10 +244,10 @@ class NeuralNetwork(SupervisedLearner):
         self.feature_normalization = feature_normalization
         self.cost_type = NeuralNetworkCost
 
-    def learn(__self__):
+    def learn(self, theta_0=None):
         raise NotImplementedError()
 
-    def predict(__self__):
+    def predict(self, data_point):
         raise NotImplementedError()
 
 
