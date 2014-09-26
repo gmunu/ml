@@ -124,6 +124,26 @@ class GradDescent(Optimizer):
 
 class Learner(object):
 
+    def load(self, filename):
+        self.training_set = self.training_set_type(filename)
+
+
+class SupervisedLearner(Learner):
+
+    def __init__(self, alpha, max_iters, feature_normalization=False):
+        self.optimizer = GradDescent(alpha, max_iters)
+        self.feature_normalization = feature_normalization
+        self.cost_type = Cost
+        # self.training_set_type = SupervisedData
+
+    def load(training_set):
+        self.training_set = training_set
+        self.cost = self.cost_type(training_set.feature_matrix,
+                                   training_set.labels)
+
+
+class Dataset(object):
+
     def _normalize_features(self, features, mu=None, sigma=None):
         if mu==None:
             mu = npy.mean(features, 0)
@@ -133,62 +153,51 @@ class Learner(object):
         return normalized, mu, sigma
 
 
-class SupervisedLearner(Learner):
-
-    def __init__(self, alpha, max_iters, feature_normalization=False):
-        self.optimizer = GradDescent(alpha, max_iters)
+class SupervisedDataset(Dataset):
+    
+    def __init__(self, filename, data_format="csv",
+                 feature_normalization=False):
         self.feature_normalization = feature_normalization
-        self.cost_type = Cost
-
-    def load(self, filename):
-        feature_matrix, labels = self._load_data(filename)
-        self.m, self.n = feature_matrix.shape
+        if data_format == "csv":
+            self.feature_matrix, self.labels = self._load_csv(filename)
+        elif data_format == "mat":
+            self.feature_matrix, self.labels = self._load_mat(filename)
+        self.m, self.n = self.feature_matrix.shape
         if self.feature_normalization:
-            (feature_matrix,
-             self.mu, self.sigma) = self._normalize_features(feature_matrix)
+            (self.feature_matrix,
+             self.mu, self.sigma) = self._normalize_features(self.feature_matrix)
         # augment X by 1 (intercept feature):
-        feature_matrix = npy.hstack([npy.ones((self.m, 1)), feature_matrix])
+        self.feature_matrix = npy.hstack([npy.ones((self.m, 1)), 
+                                          self.feature_matrix])
         # alternatively:
         # tmp = npy.mat(npy.ones((m, n + 1)))
         # tmp[:, 1:] = X
         # X = tmp
-        self.cost = self.cost_type(feature_matrix, labels)
-        return feature_matrix, labels
 
-    def _load_data(self, filename):
-        """The given filename contains the training set, one line per data point,
-        consisting of comma separated features and label."""
+    def _load_csv(self, filename, 
+                  # by default, the labels are in the last column:
+                  label_column=-1):
+        """The given filename contains the training set, one line per data 
+        point, consisting of comma separated features and label in column
+        label_column (last column by default)."""
         training_set = npy.loadtxt(filename, delimiter=",", dtype=float)
         training_set = npy.mat(training_set)
         # alternatively:
         # with open(filename, 'r') as datafile:
         #     training_set = npy.vstack(npy.mat(line.split(","), float)
         #                              for line in datafile)
-        labels = training_set[:, -1] # last column
-        feature_matrix = training_set[:, :-1] # all but last column
-        return feature_matrix, labels
-
-    def loadmat(self, filename):
-        feature_matrix, labels = self._load_mat(filename)
-        self.m, self.n = feature_matrix.shape
-        if self.feature_normalization:
-            (feature_matrix,
-             self.mu, self.sigma) = self._normalize_features(feature_matrix)
-        # augment X by 1 (intercept feature):
-        feature_matrix = npy.hstack([npy.ones((self.m, 1)), feature_matrix])
-        # alternatively:
-        # tmp = npy.mat(npy.ones((m, n + 1)))
-        # tmp[:, 1:] = X
-        # X = tmp
-        self.cost = self.cost_type(feature_matrix, labels)
+        labels = training_set[:, label_column] 
+        # delete label column:
+        feature_matrix = npy.delete(training_set, label_column, 1)
         return feature_matrix, labels
 
     def _load_mat(self, filename, name_feature_matrix="X", name_labels="y"):
-        """The given filename contains the training set in matlab format"
-        where the feature matrix is named consisting of comma separated features and label."""
+        """The given filename contains the training set in matlab format,
+        where the feature matrix and the labels are named name_feature_matrix 
+        and named name_labels ("X" and "y" by default), respectively."""
         training_set = sio.loadmat(filename)
-        labels = npy.mat(training_set["y"])
-        feature_matrix = npy.mat(training_set["X"])
+        labels = npy.mat(training_set[name_labels])
+        feature_matrix = npy.mat(training_set[name_feature_matrix])
         return feature_matrix, labels
 
 

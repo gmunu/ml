@@ -12,14 +12,15 @@ class TestSupervisedLoad:
     filename_multivariate_mat_data = 'tests/ex1data2.mat'
 
     def setup(self):
-        self.sl = SupervisedLearner(alpha=0.01, max_iters=40)
+        pass
 
     def teardown(self):
-        self.sl = None
+        pass
 
     def test_csv_load(self):
         filename = TestSupervisedLoad.filename_multivariate_csv_data
-        feature_matrix, labels = self.sl.load(filename)
+        dataset = SupervisedDataset(filename)
+        feature_matrix, labels = dataset.feature_matrix, dataset.labels
         some_features = feature_matrix[-3:,:]
         expected_features = npy.mat("1 852 2; 1 1852 4; 1 1203 3")
         assert_array_almost_equal(some_features, expected_features)
@@ -29,7 +30,8 @@ class TestSupervisedLoad:
 
     def test_mat_load(self):
         filename = TestSupervisedLoad.filename_multivariate_mat_data
-        feature_matrix, labels = self.sl.loadmat(filename)
+        dataset = SupervisedDataset(filename, data_format="mat")
+        feature_matrix, labels = dataset.feature_matrix, dataset.labels
         some_features = feature_matrix[-3:,:]
         expected_features = npy.mat("1 852 2; 1 1852 4; 1 1203 3")
         assert_array_almost_equal(some_features, expected_features)
