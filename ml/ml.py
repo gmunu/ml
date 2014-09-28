@@ -124,8 +124,8 @@ class GradDescent(Optimizer):
 
 class Learner(object):
 
-    def load(self, filename):
-        self.training_set = self.training_set_type(filename)
+    def load_file(self, filename):
+        self.training_set = self.training_set_type.from_file(filename)
 
 
 class SupervisedLearner(Learner):
@@ -134,9 +134,9 @@ class SupervisedLearner(Learner):
         self.optimizer = GradDescent(alpha, max_iters)
         self.feature_normalization = feature_normalization
         self.cost_type = Cost
-        # self.training_set_type = SupervisedData
+        self.training_set_type = SupervisedData
 
-    def load(training_set):
+    def load(self, training_set):
         self.training_set = training_set
         self.cost = self.cost_type(training_set.feature_matrix,
                                    training_set.labels)
@@ -144,37 +144,59 @@ class SupervisedLearner(Learner):
 
 class Dataset(object):
 
-    def _normalize_features(self, features, mu=None, sigma=None):
+    def __init__(self):
+        self.is_normalized = False
+
+    def normalize_features(self):
+        if self.feature_normalization:
+            (self.feature_matrix, self.mu,
+             self.sigma) = self._normalize_features(self.feature_matrix)
+            self.is_normalized = True
+        return self
+
+    @staticmethod
+    def _normalize_features(features, mu=None, sigma=None):
         if mu==None:
             mu = npy.mean(features, 0)
         if sigma==None:
             sigma = npy.std(features, 0)
-        normalized = (features - mu) / sigma
-        return normalized, mu, sigma
+        normalized_features = (features - mu) / sigma
+        return normalized_features, mu, sigma
 
 
 class SupervisedDataset(Dataset):
     
-    def __init__(self, filename, data_format="csv",
+    @classmethod
+    def from_file(cls, filename, data_format="csv",
                  feature_normalization=False):
-        self.feature_normalization = feature_normalization
+        dataset = cls()
         if data_format == "csv":
-            self.feature_matrix, self.labels = self._load_csv(filename)
+            feature_matrix, labels = cls._load_csv(filename)
         elif data_format == "mat":
-            self.feature_matrix, self.labels = self._load_mat(filename)
-        self.m, self.n = self.feature_matrix.shape
-        if self.feature_normalization:
-            (self.feature_matrix,
-             self.mu, self.sigma) = self._normalize_features(self.feature_matrix)
+            feature_matrix, labels = cls._load_mat(filename)
+        m, n = feature_matrix.shape
+        mu, sigma = None, None
+        if feature_normalization:
+            (feature_matrix,
+             mu, sigma) = cls._normalize_features(feature_matrix)
         # augment X by 1 (intercept feature):
-        self.feature_matrix = npy.hstack([npy.ones((self.m, 1)), 
-                                          self.feature_matrix])
+        feature_matrix = npy.hstack([npy.ones((m, 1)), 
+                                          feature_matrix])
         # alternatively:
         # tmp = npy.mat(npy.ones((m, n + 1)))
         # tmp[:, 1:] = X
         # X = tmp
+        dataset = cls()
+        dataset.feature_matrix = feature_matrix
+        dataset.labels = labels
+        dataset.m, dataset.n = m, n
+        dataset.features_are_normalized = feature_normalization
+        dataset.mu = mu
+        dataset.sigma = sigma
+        return dataset
 
-    def _load_csv(self, filename, 
+    @staticmethod
+    def _load_csv(filename, 
                   # by default, the labels are in the last column:
                   label_column=-1):
         """The given filename contains the training set, one line per data 
@@ -191,7 +213,8 @@ class SupervisedDataset(Dataset):
         feature_matrix = npy.delete(training_set, label_column, 1)
         return feature_matrix, labels
 
-    def _load_mat(self, filename, name_feature_matrix="X", name_labels="y"):
+    @staticmethod
+    def _load_mat(filename, name_feature_matrix="X", name_labels="y"):
         """The given filename contains the training set in matlab format,
         where the feature matrix and the labels are named name_feature_matrix 
         and named name_labels ("X" and "y" by default), respectively."""
@@ -218,14 +241,17 @@ class LinearRegression(Regression):
 
     def learn(self, theta_0=None):
         if theta_0==None:
-            theta_0 = npy.mat(npy.zeros((self.n + 1, 1)))
+            n = self.training_set.n
+            theta_0 = npy.mat(npy.zeros((n + 1, 1)))
         self.theta, J_history = self.optimizer.optimize(self.cost, theta_0)
         return self.theta, J_history
 
     def predict(self, data_point):
-        if self.feature_normalization:
-            data_point = self._normalize_features(data_point,
-                                                  self.mu, self.sigma)[0]
+        training_set = self.training_set
+        if training_set.features_are_normalized:
+            mu, sigma = training_set.mu, training_set.sigma
+            data_point = training_set._normalize_features(data_point,
+                                                          mu, sigma)[0]
         augmented_data_point = npy.hstack([npy.mat("1"), data_point])
         return augmented_data_point * self.theta
 

@@ -19,7 +19,7 @@ class TestSupervisedLoad:
 
     def test_csv_load(self):
         filename = TestSupervisedLoad.filename_multivariate_csv_data
-        dataset = SupervisedDataset(filename)
+        dataset = SupervisedDataset.from_file(filename)
         feature_matrix, labels = dataset.feature_matrix, dataset.labels
         some_features = feature_matrix[-3:,:]
         expected_features = npy.mat("1 852 2; 1 1852 4; 1 1203 3")
@@ -30,7 +30,7 @@ class TestSupervisedLoad:
 
     def test_mat_load(self):
         filename = TestSupervisedLoad.filename_multivariate_mat_data
-        dataset = SupervisedDataset(filename, data_format="mat")
+        dataset = SupervisedDataset.from_file(filename, data_format="mat")
         feature_matrix, labels = dataset.feature_matrix, dataset.labels
         some_features = feature_matrix[-3:,:]
         expected_features = npy.mat("1 852 2; 1 1852 4; 1 1203 3")
@@ -46,7 +46,9 @@ class TestUnivariateLinearRegression:
 
     def setup(self):
         self.lr = LinearRegression(alpha=0.01, max_iters=1500)
-        self.lr.load(TestUnivariateLinearRegression.filename_training_set)
+        filename = TestUnivariateLinearRegression.filename_training_set
+        dataset = SupervisedDataset.from_file(filename)
+        self.lr.load(dataset)
 
     def teardown(self):
         self.lr = None
@@ -84,7 +86,10 @@ class TestMultivariateLinearRegression:
     def setup(self):
         self.lr = LinearRegression(alpha=0.01, max_iters=400,
                                    feature_normalization=True)
-        self.lr.load(TestMultivariateLinearRegression.filename_training_set)
+        filename = TestMultivariateLinearRegression.filename_training_set
+        dataset = SupervisedDataset.from_file(filename,
+                                              feature_normalization=True)
+        self.lr.load(dataset)
 
     def teardown(self):
         self.lr = None
@@ -125,7 +130,9 @@ class TestLogisticRegression:
 
     def setup(self):
         self.lr = LogisticRegression(max_iters=400)
-        self.lr.load(TestLogisticRegression.filename_training_set)
+        filename = TestLogisticRegression.filename_training_set
+        dataset = SupervisedDataset.from_file(filename)
+        self.lr.load(dataset)
 
     def teardown(self):
         self.lr = None
