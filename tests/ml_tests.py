@@ -3,7 +3,7 @@ from nose.tools import assert_equal, assert_almost_equal
 from numpy.testing import assert_array_almost_equal, assert_allclose
 import numpy as npy
 import scipy.io as sio
-from ml.ml import *
+from ml import *
 
 
 class TestSupervisedLoad:
